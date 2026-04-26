@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CreatorRadar — Análise de Criadores</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F7F6F3;
+    --surface: #FFFFFF;
+    --surface2: #F0EEE9;
+    --border: #E5E2DB;
+    --border2: #D4D0C8;
+    --text: #1A1814;
+    --text2: #6B6760;
+    --text3: #A09C96;
+    --accent: #D85A30;
+    --accent2: #B84928;
+    --green: #1D9E75;
+    --amber: #BA7517;
+    --red: #C62828;
+    --blue: #185FA5;
+    --purple: #534AB7;
+    --radius: 10px;
+    --radius-lg: 14px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* ── LAYOUT ── */
+  .app { display: flex; min-height: 100vh; }
+
+  .sidebar {
+    width: 260px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 24px 0;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    display: flex;
+    flex-direction: column;
+    z-index: 10;
+  }
+
+  .main {
+    margin-left: 260px;
+    flex: 1;
+    padding: 32px;
+    max-width: calc(100vw - 260px);
+  }
+
+  /* ── SIDEBAR ── */
+  .logo {
+    padding: 0 20px 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+
+  .logo-text {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+
+  .logo-text span { color: var(--accent); }
+  .logo-sub { font-size: 11px; color: var(--text3); margin-top: 2px; font-family: 'DM Mono', monospace; }
+
+  .nav-section { padding: 0 12px; margin-bottom: 8px; }
+  .nav-label { font-size: 10px; font-weight: 600; color: var(--text3); letter-spacing: .12em; text-transform: uppercase; padding: 0 8px; margin-bottom: 4px; }
+
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: 8px;
+    cursor: pointer; color: var(--text2);
+    font-size: 13px; font-weight: 500;
+    transition: all .15s;
+    margin-bottom: 2px;
+  }
+
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { background: var(--accent); color: #fff; }
+  .nav-item.active .nav-icon { color: #fff; }
+
+  .nav-icon { font-size: 15px; width: 18px; text-align: center; }
+
+  .nav-badge {
+    margin-left: auto;
+    font-size: 10px; font-weight: 600;
+    background: var(--surface2);
+    color: var(--text3);
+    padding: 2px 7px; border-radius: 99px;
+  }
+
+  .nav-item.active .nav-badge { background: rgba(255,255,255,.2); color: #fff; }
+
+  .sidebar-bottom {
+    margin-top: auto;
+    padding: 16px 12px 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .api-badge {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 12px; border-radius: 8px;
+    background: var(--surface2);
+    font-size: 12px; color: var(--text2);
+    cursor: pointer;
+    transition: all .15s;
+  }
+
+  .api-badge:hover { background: var(--border); }
+  .api-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--amber); }
+  .api-dot.connected { background: var(--green); }
+
+  /* ── HEADER ── */
+  .page-header {
+    display: flex; align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 28px; gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .page-title { font-size: 22px; font-weight: 600; letter-spacing: -0.5px; }
+  .page-sub { font-size: 13px; color: var(--text2); margin-top: 3px; }
+
+  /* ── SEARCH ── */
+  .search-wrap {
+    position: relative; margin-bottom: 20px;
+  }
+
+  .search-icon {
+    position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+    color: var(--text3); font-size: 15px; pointer-events: none;
+  }
+
+  .search-input {
+    width: 100%;
+    padding: 12px 16px 12px 42px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--text);
+    outline: none;
+    transition: border-color .15s;
+  }
+
+  .search-input:focus { border-color: var(--accent); }
+  .search-input::placeholder { color: var(--text3); }
+
+  .search-btn {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    background: var(--accent); color: #fff;
+    border: none; border-radius: 6px;
+    padding: 7px 16px; font-family: 'DM Sans', sans-serif;
+    font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: background .15s;
+  }
+
+  .search-btn:hover { background: var(--accent2); }
+
+  /* ── FILTERS ── */
+  .filters {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px; margin-bottom: 24px;
+  }
+
+  .filter-group { display: flex; flex-direction: column; gap: 5px; }
+  .filter-label { font-size: 11px; font-weight: 500; color: var(--text3); letter-spacing: .05em; }
+
+  .filter-select {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px; color: var(--text);
+    outline: none; cursor: pointer;
+    transition: border-color .15s;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23A09C96' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 30px;
+  }
+
+  .filter-select:focus { border-color: var(--accent); }
+
+  /* ── STATS ── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px; margin-bottom: 28px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+  }
+
+  .stat-label { font-size: 11px; font-weight: 500; color: var(--text3); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .08em; }
+  .stat-val { font-size: 26px; font-weight: 600; letter-spacing: -1px; color: var(--text); }
+  .stat-sub { font-size: 11px; color: var(--text3); margin-top: 3px; }
+
+  /* ── RESULTS ── */
+  .results-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .results-label { font-size: 11px; font-weight: 600; color: var(--text3); letter-spacing: .1em; text-transform: uppercase; }
+
+  .sort-select {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px; color: var(--text2);
+    border: 1px solid var(--border);
+    border-radius: 6px; padding: 4px 10px;
+    background: var(--surface); cursor: pointer; outline: none;
+  }
+
+  .results-grid { display: flex; flex-direction: column; gap: 8px; }
+
+  /* ── CREATOR CARD ── */
+  .creator-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px 20px;
+    display: grid;
+    grid-template-columns: 48px 1fr auto;
+    gap: 14px; align-items: center;
+    cursor: pointer;
+    transition: all .15s;
+  }
+
+  .creator-card:hover {
+    border-color: var(--accent);
+    box-shadow: 0 2px 12px rgba(216,90,48,.08);
+    transform: translateY(-1px);
+  }
+
+  .avatar {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  .creator-name { font-size: 14px; font-weight: 600; color: var(--text); }
+  .creator-handle { font-size: 12px; color: var(--text3); font-family: 'DM Mono', monospace; margin-top: 1px; }
+
+  .meta-pills { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+
+  .pill {
+    font-size: 11px; font-weight: 500;
+    padding: 3px 9px; border-radius: 99px;
+  }
+
+  .pill-cat { background: #EEEDFE; color: #3C3489; }
+  .pill-plat-yt { background: #FCEBEB; color: #791F1F; }
+  .pill-plat-tt { background: #E1F5EE; color: #085041; }
+  .pill-plat-ig { background: #FBEAF0; color: #72243E; }
+  .pill-hot { background: #FAEEDA; color: #633806; }
+
+  .creator-right { text-align: right; flex-shrink: 0; }
+  .seg-val { font-size: 18px; font-weight: 600; letter-spacing: -0.5px; color: var(--text); }
+  .seg-label { font-size: 11px; color: var(--text3); }
+
+  .views-val { font-size: 12px; color: var(--text2); margin-top: 4px; }
+
+  .eng-wrap { display: flex; align-items: center; gap: 6px; margin-top: 6px; justify-content: flex-end; }
+  .eng-val { font-size: 12px; font-weight: 500; }
+  .eng-bar { width: 60px; height: 4px; background: var(--surface2); border-radius: 2px; }
+  .eng-fill { height: 4px; border-radius: 2px; }
+
+  /* ── EMPTY ── */
+  .empty {
+    text-align: center; padding: 48px 24px;
+    color: var(--text3); font-size: 14px;
+  }
+
+  .empty-icon { font-size: 36px; margin-bottom: 12px; }
+
+  /* ── DETAIL PANEL ── */
+  .detail-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.3);
+    z-index: 50;
+    display: none; align-items: center; justify-content: flex-end;
+  }
+
+  .detail-overlay.open { display: flex; }
+
+  .detail-panel {
+    width: 420px; height: 100vh;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 28px;
+    animation: slideIn .2s ease;
+  }
+
+  @keyframes slideIn { from { transform: translateX(40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+  .detail-close {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; color: var(--text2);
+    cursor: pointer; margin-bottom: 24px;
+    width: fit-content;
+  }
+
+  .detail-close:hover { color: var(--text); }
+
+  .detail-avatar {
+    width: 72px; height: 72px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; font-weight: 600;
+    margin-bottom: 16px;
+  }
+
+  .detail-name { font-size: 20px; font-weight: 600; letter-spacing: -0.5px; margin-bottom: 4px; }
+  .detail-handle { font-size: 13px; color: var(--text3); font-family: 'DM Mono', monospace; margin-bottom: 12px; }
+
+  .detail-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 24px; }
+
+  .detail-divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+  .detail-section-label { font-size: 11px; font-weight: 600; color: var(--text3); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 12px; }
+
+  .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .metric-card {
+    background: var(--surface2);
+    border-radius: 8px; padding: 12px 14px;
+  }
+
+  .metric-label { font-size: 11px; color: var(--text3); margin-bottom: 5px; }
+  .metric-val { font-size: 20px; font-weight: 600; letter-spacing: -0.5px; }
+  .metric-sub { font-size: 11px; color: var(--text3); margin-top: 3px; }
+
+  .analysis-block {
+    background: var(--surface2);
+    border-radius: 8px; padding: 14px 16px;
+    margin-bottom: 10px;
+  }
+
+  .analysis-label { font-size: 11px; font-weight: 600; color: var(--text3); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .08em; }
+  .analysis-text { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+  .eng-score {
+    display: flex; align-items: center; gap: 10px; margin-top: 6px;
+  }
+
+  .eng-score-bar { flex: 1; height: 6px; background: var(--border); border-radius: 3px; }
+  .eng-score-fill { height: 6px; border-radius: 3px; }
+  .eng-score-val { font-size: 14px; font-weight: 600; }
+
+  /* ── CONFIG MODAL ── */
+  .config-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.4);
+    z-index: 100; display: none;
+    align-items: center; justify-content: center;
+  }
+
+  .config-overlay.open { display: flex; }
+
+  .config-modal {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    padding: 28px; width: 440px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.15);
+  }
+
+  .config-title { font-size: 17px; font-weight: 600; margin-bottom: 6px; }
+  .config-sub { font-size: 13px; color: var(--text2); margin-bottom: 24px; line-height: 1.5; }
+
+  .form-group { margin-bottom: 16px; }
+  .form-label { font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: 6px; display: block; }
+
+  .form-input {
+    width: 100%; padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px; color: var(--text);
+    background: var(--surface); outline: none;
+    transition: border-color .15s;
+  }
+
+  .form-input:focus { border-color: var(--accent); }
+
+  .form-select {
+    width: 100%; padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px; color: var(--text);
+    background: var(--surface); outline: none; cursor: pointer;
+  }
+
+  .config-actions { display: flex; gap: 8px; margin-top: 24px; }
+
+  .btn {
+    padding: 10px 20px; border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: all .15s; border: none;
+  }
+
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent2); }
+  .btn-secondary { background: var(--surface2); color: var(--text2); }
+  .btn-secondary:hover { background: var(--border); }
+
+  .info-box {
+    background: #EEF3FB; border-radius: 8px;
+    padding: 12px 14px; margin-bottom: 16px;
+    font-size: 12px; color: #185FA5; line-height: 1.5;
+  }
+
+  .info-box a { color: var(--accent); text-decoration: none; font-weight: 500; }
+  .info-box a:hover { text-decoration: underline; }
+
+  /* ── LOADING ── */
+  .loading {
+    text-align: center; padding: 48px;
+    color: var(--text3); font-size: 13px;
+  }
+
+  .spinner {
+    width: 28px; height: 28px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    margin: 0 auto 14px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── ALTA TAB ── */
+  .alta-header {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .hot-badge {
+    font-size: 11px; font-weight: 600;
+    background: #FAEEDA; color: #633806;
+    padding: 4px 10px; border-radius: 99px;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; max-width: 100vw; padding: 16px; }
+    .detail-panel { width: 100vw; }
+    .config-modal { width: calc(100vw - 32px); margin: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-text">Creator<span>Radar</span></div>
+      <div class="logo-sub">v1.0 · modo demo</div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Análise</div>
+      <div class="nav-item active" onclick="goTab('busca',this)">
+        <span class="nav-icon">⊕</span> Buscar contas
+      </div>
+      <div class="nav-item" onclick="goTab('alta',this)">
+        <span class="nav-icon">↑</span> Contas em alta
+        <span class="nav-badge" id="badge-alta">5</span>
+      </div>
+      <div class="nav-item" onclick="goTab('salvos',this)">
+        <span class="nav-icon">♡</span> Salvos
+        <span class="nav-badge" id="badge-salvos">0</span>
+      </div>
+    </div>
+
+    <div class="nav-section" style="margin-top:16px">
+      <div class="nav-label">Plataformas</div>
+      <div class="nav-item" onclick="filterPlat('YouTube')">
+        <span class="nav-icon">▶</span> YouTube
+      </div>
+      <div class="nav-item" onclick="filterPlat('TikTok')">
+        <span class="nav-icon">♪</span> TikTok
+      </div>
+      <div class="nav-item" onclick="filterPlat('Instagram')">
+        <span class="nav-icon">◎</span> Instagram
+      </div>
+    </div>
+
+    <div class="sidebar-bottom">
+      <div class="api-badge" onclick="openConfig()" id="api-badge-btn">
+        <div class="api-dot" id="api-dot"></div>
+        <div>
+          <div style="font-size:12px;font-weight:500;color:var(--text)">API Apify</div>
+          <div style="font-size:11px;color:var(--text3)" id="api-status-text">Modo demo ativo</div>
+        </div>
+        <span style="margin-left:auto;font-size:12px;color:var(--text3)">⚙</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- TAB: BUSCA -->
+    <div id="tab-busca">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Buscar Criadores</div>
+          <div class="page-sub">Filtre por plataforma, seguidores, views e categoria</div>
+        </div>
+      </div>
+
+      <div class="search-wrap">
+        <span class="search-icon">⊕</span>
+        <input type="text" class="search-input" id="search-input"
+          placeholder="Buscar por nome, @handle ou categoria..."
+          onkeydown="if(event.key==='Enter')buscar()" />
+        <button class="search-btn" onclick="buscar()">Buscar →</button>
+      </div>
+
+      <div class="filters">
+        <div class="filter-group">
+          <div class="filter-label">Plataforma</div>
+          <select class="filter-select" id="f-platform" onchange="aplicarFiltros()">
+            <option value="">Todas</option>
+            <option value="YouTube">YouTube</option>
+            <option value="TikTok">TikTok</option>
+            <option value="Instagram">Instagram</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <div class="filter-label">Seguidores mínimos</div>
+          <select class="filter-select" id="f-seg" onchange="aplicarFiltros()">
+            <option value="0">Qualquer</option>
+            <option value="10000">10k+</option>
+            <option value="50000">50k+</option>
+            <option value="100000">100k+</option>
+            <option value="500000">500k+</option>
+            <option value="1000000">1M+</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <div class="filter-label">Média de views</div>
+          <select class="filter-select" id="f-views" onchange="aplicarFiltros()">
+            <option value="0">Qualquer</option>
+            <option value="5000">5k+</option>
+            <option value="50000">50k+</option>
+            <option value="100000">100k+</option>
+            <option value="500000">500k+</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <div class="filter-label">Categoria</div>
+          <select class="filter-select" id="f-cat" onchange="aplicarFiltros()">
+            <option value="">Todas</option>
+            <option value="Drama">Drama</option>
+            <option value="Comédia">Comédia</option>
+            <option value="Humor">Humor</option>
+            <option value="Romance">Romance</option>
+            <option value="Motivacional">Motivacional</option>
+            <option value="Educativo">Educativo</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <div class="filter-label">Engajamento mín.</div>
+          <select class="filter-select" id="f-eng" onchange="aplicarFiltros()">
+            <option value="0">Qualquer</option>
+            <option value="3">3%+</option>
+            <option value="5">5%+</option>
+            <option value="7">7%+</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="stats-row" id="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">Contas</div>
+          <div class="stat-val" id="s-total">10</div>
+          <div class="stat-sub">encontradas</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Méd. seguidores</div>
+          <div class="stat-val" id="s-seg">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Méd. views</div>
+          <div class="stat-val" id="s-views">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Méd. engajamento</div>
+          <div class="stat-val" id="s-eng">—</div>
+        </div>
+      </div>
+
+      <div class="results-header">
+        <div class="results-label" id="results-label">Todos os resultados</div>
+        <select class="sort-select" id="sort-select" onchange="aplicarFiltros()">
+          <option value="seg">Ordenar: Seguidores</option>
+          <option value="views">Ordenar: Views</option>
+          <option value="eng">Ordenar: Engajamento</option>
+        </select>
+      </div>
+
+      <div class="results-grid" id="results-grid"></div>
+    </div>
+
+    <!-- TAB: ALTA -->
+    <div id="tab-alta" style="display:none">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Contas em Alta</div>
+          <div class="page-sub">Crescimento acelerado esta semana</div>
+        </div>
+        <span class="hot-badge">↑ Atualizado hoje</span>
+      </div>
+      <div class="results-grid" id="alta-grid"></div>
+    </div>
+
+    <!-- TAB: SALVOS -->
+    <div id="tab-salvos" style="display:none">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Contas Salvas</div>
+          <div class="page-sub">Sua lista de criadores para acompanhar</div>
+        </div>
+      </div>
+      <div class="results-grid" id="salvos-grid"></div>
+      <div class="empty" id="salvos-empty">
+        <div class="empty-icon">♡</div>
+        <div>Nenhuma conta salva ainda.</div>
+        <div style="font-size:12px;margin-top:6px;color:var(--text3)">Clique em uma conta e salve para acompanhar aqui.</div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- DETAIL PANEL -->
+<div class="detail-overlay" id="detail-overlay" onclick="closeDetail(event)">
+  <div class="detail-panel" id="detail-panel">
+    <div class="detail-close" onclick="closeDetailDirect()">← Voltar</div>
+    <div id="detail-content"></div>
+  </div>
+</div>
+
+<!-- CONFIG MODAL -->
+<div class="config-overlay" id="config-overlay" onclick="closeConfigOverlay(event)">
+  <div class="config-modal">
+    <div class="config-title">Configurar API Apify</div>
+    <div class="config-sub">Conecte sua conta Apify para coletar dados reais de TikTok, Instagram e YouTube.</div>
+
+    <div class="info-box">
+      Crie uma conta gratuita em <a href="https://apify.com" target="_blank">apify.com</a> →
+      Settings → Integrations → API tokens → copie o token.<br><br>
+      O plano gratuito inclui US$ 5 de crédito mensais para testes.
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Chave da API Apify</label>
+      <input type="password" class="form-input" id="apify-key" placeholder="apify_api_XXXXXXXXXXXXXXXXXXXX" />
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Plataforma principal</label>
+      <select class="form-select" id="api-platform">
+        <option>YouTube (API oficial — recomendado)</option>
+        <option>TikTok (via Apify Scraper)</option>
+        <option>Instagram (via Apify Scraper)</option>
+        <option>Todas as plataformas</option>
+      </select>
+    </div>
+
+    <div class="config-actions">
+      <button class="btn btn-primary" onclick="saveConfig()">Salvar e conectar</button>
+      <button class="btn btn-secondary" onclick="closeConfig()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var DATA = [
+  {id:1,name:'Pra Cima, TATI!!!',handle:'@PraCimaTati',platform:'TikTok',cat:'Drama',seg:3356120,views:310000,eng:8.2,avatar:'PT',avatarBg:'#E6F1FB',avatarColor:'#0C447C',alta:true,saved:false,
+   analysis:'Canal com crescimento consistente e alta taxa de compartilhamento. O formato de drama relacional curto funciona muito bem na plataforma, com ganchos emocionais fortes nos primeiros segundos.',
+   dicas:'Manter o ritmo atual de publicação. Testar variações no tipo de conflito para evitar repetição percebida pelo público.',
+   alcance:'4.3% da base por vídeo — acima da média da plataforma para drama.',
+   crescimento:'↑ 38.8k seguidores no último mês'},
+
+  {id:2,name:'Raiz Em Cenas',handle:'@raizemcenas',platform:'TikTok',cat:'Drama',seg:450188,views:212000,eng:6.4,avatar:'RC',avatarBg:'#EAF3DE',avatarColor:'#3B6D11',alta:true,saved:false,
+   analysis:'Conta com engajamento sólido e crescimento acelerado. O nicho de drama rural é diferenciado e cria identificação forte com o público.',
+   dicas:'Explorar conflitos morais além do drama de relacionamento. A identidade visual do interior é um diferencial forte — manter.',
+   alcance:'47% da base por vídeo — excelente distribuição orgânica.',
+   crescimento:'↑ 51.1k seguidores no último mês'},
+
+  {id:3,name:'A Vida Nos Vídeos',handle:'@avidanosvideos',platform:'YouTube',cat:'Drama',seg:3031584,views:250000,eng:7.1,avatar:'AV',avatarBg:'#EEEDFE',avatarColor:'#3C3489',alta:false,saved:false,
+   analysis:'Canal estabelecido com base sólida. Engajamento acima da média para o porte do canal, o que indica que o público fiel ainda está ativo.',
+   dicas:'Trabalhar mais mal-entendidos e conexões inesperadas. Formato com dois lados legítimos gera comentários espontâneos.',
+   alcance:'8.2% da base por vídeo — bom para canal de grande porte.',
+   crescimento:'↑ 23.3k seguidores no último mês'},
+
+  {id:4,name:'Janaele em Cena',handle:'@janaeleemcena',platform:'TikTok',cat:'Drama',seg:1685581,views:75000,eng:4.2,avatar:'JC',avatarBg:'#FAEEDA',avatarColor:'#633806',alta:false,saved:false,
+   analysis:'Base grande mas engajamento abaixo do esperado para o porte. Indica possível desalinhamento entre o conteúdo atual e as expectativas da audiência que cresceu na conta.',
+   dicas:'Revisitar o formato de abertura. Variar quem conduz a resolução do conflito para surpreender o público que já conhece o padrão.',
+   alcance:'4.4% da base por vídeo — abaixo do potencial para o nicho.',
+   crescimento:'↑ 13.9k seguidores no último mês'},
+
+  {id:5,name:'Chestinho Vídeos',handle:'@chestinhovideos',platform:'YouTube',cat:'Humor',seg:92579,views:65000,eng:5.8,avatar:'CV',avatarBg:'#FCEBEB',avatarColor:'#791F1F',alta:false,saved:false,
+   analysis:'Canal de humor com engajamento saudável e crescimento consistente. O formato de humor cotidiano tem apelo amplo.',
+   dicas:'Testar o formato de duplo sentido com resolução inocente — muito eficaz para humor sem polêmica.',
+   alcance:'70.2% da base por vídeo — distribuição excelente para o porte.',
+   crescimento:'↑ 33.6k seguidores no último mês'},
+
+  {id:6,name:'LariGo',handle:'@larigaino',platform:'TikTok',cat:'Romance',seg:361671,views:58000,eng:5.1,avatar:'LG',avatarBg:'#E1F5EE',avatarColor:'#085041',alta:true,saved:false,
+   analysis:'Formato de drama relacional com protagonistas bem definidos. Os vídeos funcionam pelo contraste entre arquétipos opostos e pela clareza do conflito moral.',
+   dicas:'Expandir os tipos de conflito — não apenas triângulo amoroso. O público já conhece o padrão e pode começar a antecipar.',
+   alcance:'16% da base por vídeo — boa distribuição orgânica.',
+   crescimento:'↑ 16.8k seguidores no último mês'},
+
+  {id:7,name:'Os farofeiros',handle:'@osfaofeiros',platform:'YouTube',cat:'Comédia',seg:591472,views:84000,eng:6.9,avatar:'OF',avatarBg:'#FAEEDA',avatarColor:'#633806',alta:false,saved:false,
+   analysis:'Comédia com identidade bem definida e engajamento consistente. O humor baseado em situações cotidianas tem alta capacidade de compartilhamento.',
+   dicas:'Explorar situações com conflito moral leve — humor que gera debate tende a ter mais alcance orgânico.',
+   alcance:'14.2% da base por vídeo — excelente para o nicho.',
+   crescimento:'↑ 34k seguidores no último mês'},
+
+  {id:8,name:'CINE PIERRE',handle:'@cinepierre',platform:'TikTok',cat:'Drama',seg:13422,views:21000,eng:9.1,avatar:'CP',avatarBg:'#EEEDFE',avatarColor:'#3C3489',alta:true,saved:false,
+   analysis:'Canal pequeno mas com engajamento acima da média. Isso indica que o algoritmo está distribuindo bem o conteúdo para fora da base de seguidores — sinal positivo para crescimento acelerado.',
+   dicas:'Manter consistência de publicação. Nesse estágio, frequência importa mais que perfeição.',
+   alcance:'156% da base por vídeo — viral orgânico para além dos seguidores.',
+   crescimento:'↑ 13.2k seguidores no último mês'},
+
+  {id:9,name:'Felipe Yslan Tv',handle:'@felipeyslan',platform:'YouTube',cat:'Motivacional',seg:1170018,views:52000,eng:3.8,avatar:'FY',avatarBg:'#E6F1FB',avatarColor:'#0C447C',alta:false,saved:false,
+   analysis:'Base de 1.2M com engajamento abaixo do esperado. O padrão sugere que a conta cresceu em um período específico e o conteúdo atual pode não estar alcançando a audiência fiel com a mesma eficácia.',
+   dicas:'Variar o gancho dos primeiros 10 segundos. Testar formatos mais curtos dentro do universo motivacional.',
+   alcance:'4.4% da base por vídeo — abaixo do potencial para canais de grande porte.',
+   crescimento:'↑ 25.6k seguidores no último mês'},
+
+  {id:10,name:'Esther em Cena',handle:'@estheremcena',platform:'TikTok',cat:'Humor',seg:788615,views:72000,eng:5.5,avatar:'EC',avatarBg:'#FBEAF0',avatarColor:'#72243E',alta:true,saved:false,
+   analysis:'Canal com identidade visual forte e dinâmica de personagens bem estabelecida. O contraste entre os dois perfis de personagem é o motor principal do engajamento.',
+   dicas:'Expandir os contextos onde os personagens interagem. Sair do mesmo ambiente cria percepção de novidade sem mudar a essência.',
+   alcance:'9.1% da base por vídeo — bom para o porte e nicho.',
+   crescimento:'↑ 23.8k seguidores no último mês'},
+];
+
+var saved = [];
+var currentTab = 'busca';
+
+function fmt(n){
+  if(n>=1000000) return (n/1000000).toFixed(1).replace('.0','')+'M';
+  if(n>=1000) return Math.round(n/1000)+'k';
+  return n.toString();
+}
+
+function engColor(e){
+  if(e>=7) return 'var(--green)';
+  if(e>=5) return 'var(--amber)';
+  return 'var(--red)';
+}
+
+function platPill(p){
+  if(p==='YouTube') return 'pill-plat-yt';
+  if(p==='TikTok') return 'pill-plat-tt';
+  return 'pill-plat-ig';
+}
+
+function renderCard(item, container){
+  var ep = Math.min(Math.round(item.eng*10),100);
+  var div = document.createElement('div');
+  div.className = 'creator-card';
+  div.innerHTML =
+    '<div class="avatar" style="background:'+item.avatarBg+';color:'+item.avatarColor+'">'+item.avatar+'</div>'+
+    '<div>'+
+      '<div class="creator-name">'+item.name+'</div>'+
+      '<div class="creator-handle">'+item.handle+'</div>'+
+      '<div class="meta-pills">'+
+        '<span class="pill pill-cat">'+item.cat+'</span>'+
+        '<span class="pill '+platPill(item.platform)+'">'+item.platform+'</span>'+
+        (item.alta?'<span class="pill pill-hot">↑ em alta</span>':'')+
+      '</div>'+
+    '</div>'+
+    '<div class="creator-right">'+
+      '<div class="seg-val">'+fmt(item.seg)+'</div>'+
+      '<div class="seg-label">seguidores</div>'+
+      '<div class="views-val">~'+fmt(item.views)+' views/vídeo</div>'+
+      '<div class="eng-wrap">'+
+        '<span class="eng-val" style="color:'+engColor(item.eng)+'">'+item.eng+'%</span>'+
+        '<div class="eng-bar"><div class="eng-fill" style="width:'+ep+'%;background:'+engColor(item.eng)+'"></div></div>'+
+      '</div>'+
+    '</div>';
+  div.onclick = function(){ openDetail(item); };
+  container.appendChild(div);
+}
+
+function buscar(){
+  aplicarFiltros();
+}
+
+function aplicarFiltros(){
+  var q = (document.getElementById('search-input').value||'').toLowerCase();
+  var plat = document.getElementById('f-platform').value;
+  var seg = parseInt(document.getElementById('f-seg').value)||0;
+  var views = parseInt(document.getElementById('f-views').value)||0;
+  var cat = document.getElementById('f-cat').value;
+  var eng = parseFloat(document.getElementById('f-eng').value)||0;
+  var sort = document.getElementById('sort-select').value;
+
+  var filtered = DATA.filter(function(item){
+    if(q && item.name.toLowerCase().indexOf(q)<0 && item.handle.toLowerCase().indexOf(q)<0 && item.cat.toLowerCase().indexOf(q)<0) return false;
+    if(plat && item.platform!==plat) return false;
+    if(item.seg<seg) return false;
+    if(item.views<views) return false;
+    if(cat && item.cat!==cat) return false;
+    if(item.eng<eng) return false;
+    return true;
+  });
+
+  filtered.sort(function(a,b){
+    if(sort==='views') return b.views-a.views;
+    if(sort==='eng') return b.eng-a.eng;
+    return b.seg-a.seg;
+  });
+
+  var grid = document.getElementById('results-grid');
+  grid.innerHTML = '';
+
+  document.getElementById('s-total').textContent = filtered.length;
+
+  if(filtered.length===0){
+    grid.innerHTML = '<div class="empty"><div class="empty-icon">⊕</div>Nenhuma conta encontrada com esses filtros.</div>';
+    document.getElementById('s-seg').textContent = '—';
+    document.getElementById('s-views').textContent = '—';
+    document.getElementById('s-eng').textContent = '—';
+    document.getElementById('results-label').textContent = '0 resultados';
+    return;
+  }
+
+  var tSeg = filtered.reduce(function(a,b){return a+b.seg},0);
+  var tViews = filtered.reduce(function(a,b){return a+b.views},0);
+  var tEng = filtered.reduce(function(a,b){return a+b.eng},0);
+  document.getElementById('s-seg').textContent = fmt(Math.round(tSeg/filtered.length));
+  document.getElementById('s-views').textContent = fmt(Math.round(tViews/filtered.length));
+  document.getElementById('s-eng').textContent = (tEng/filtered.length).toFixed(1)+'%';
+  document.getElementById('results-label').textContent = filtered.length+' resultado'+(filtered.length!==1?'s':'');
+
+  filtered.forEach(function(item){ renderCard(item, grid); });
+}
+
+function filterPlat(plat){
+  document.getElementById('f-platform').value = plat;
+  goTab('busca', document.querySelector('.nav-item'));
+  aplicarFiltros();
+}
+
+function goTab(tab, el){
+  currentTab = tab;
+  document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
+  if(el) el.classList.add('active');
+  document.getElementById('tab-busca').style.display = tab==='busca'?'block':'none';
+  document.getElementById('tab-alta').style.display = tab==='alta'?'block':'none';
+  document.getElementById('tab-salvos').style.display = tab==='salvos'?'block':'none';
+  if(tab==='alta') renderAlta();
+  if(tab==='salvos') renderSalvos();
+}
+
+function renderAlta(){
+  var grid = document.getElementById('alta-grid');
+  grid.innerHTML = '';
+  DATA.filter(function(i){return i.alta}).forEach(function(item){ renderCard(item, grid); });
+}
+
+function renderSalvos(){
+  var grid = document.getElementById('salvos-grid');
+  var empty = document.getElementById('salvos-empty');
+  grid.innerHTML = '';
+  if(saved.length===0){ empty.style.display='block'; return; }
+  empty.style.display='none';
+  saved.forEach(function(item){ renderCard(item, grid); });
+}
+
+function openDetail(item){
+  var ep = Math.min(Math.round(item.eng*10),100);
+  var isSaved = saved.some(function(s){return s.id===item.id});
+  document.getElementById('detail-content').innerHTML =
+    '<div class="detail-avatar" style="background:'+item.avatarBg+';color:'+item.avatarColor+'">'+item.avatar+'</div>'+
+    '<div class="detail-name">'+item.name+'</div>'+
+    '<div class="detail-handle">'+item.handle+'</div>'+
+    '<div class="detail-pills">'+
+      '<span class="pill pill-cat">'+item.cat+'</span>'+
+      '<span class="pill '+platPill(item.platform)+'">'+item.platform+'</span>'+
+      (item.alta?'<span class="pill pill-hot">↑ em alta</span>':'')+
+    '</div>'+
+    '<button onclick="toggleSave('+item.id+')" id="save-btn-'+item.id+'" style="padding:9px 18px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;margin-bottom:20px;">'+
+      (isSaved?'✓ Salvo':'♡ Salvar conta')+
+    '</button>'+
+
+    '<div class="detail-section-label">Indicadores</div>'+
+    '<div class="metrics-grid">'+
+      '<div class="metric-card"><div class="metric-label">Seguidores</div><div class="metric-val">'+fmt(item.seg)+'</div></div>'+
+      '<div class="metric-card"><div class="metric-label">Méd. views/vídeo</div><div class="metric-val">'+fmt(item.views)+'</div></div>'+
+      '<div class="metric-card"><div class="metric-label">Engajamento</div>'+
+        '<div class="metric-val" style="color:'+engColor(item.eng)+'">'+item.eng+'%</div>'+
+        '<div class="eng-score"><div class="eng-score-bar"><div class="eng-score-fill" style="width:'+ep+'%;background:'+engColor(item.eng)+'"></div></div></div>'+
+      '</div>'+
+      '<div class="metric-card"><div class="metric-label">Alcance/vídeo</div><div class="metric-val">'+Math.round(item.views/item.seg*100)+'%</div><div class="metric-sub">da base</div></div>'+
+    '</div>'+
+
+    '<div class="detail-divider"></div>'+
+    '<div class="detail-section-label">Análise</div>'+
+
+    '<div class="analysis-block"><div class="analysis-label">Perfil da conta</div><div class="analysis-text">'+item.analysis+'</div></div>'+
+    '<div class="analysis-block"><div class="analysis-label">Oportunidades</div><div class="analysis-text">'+item.dicas+'</div></div>'+
+    '<div class="analysis-block"><div class="analysis-label">Alcance orgânico</div><div class="analysis-text">'+item.alcance+'</div></div>'+
+    '<div class="analysis-block"><div class="analysis-label">Crescimento</div><div class="analysis-text">'+item.crescimento+'</div></div>';
+
+  document.getElementById('detail-overlay').classList.add('open');
+}
+
+function toggleSave(id){
+  var item = DATA.find(function(d){return d.id===id});
+  var idx = saved.findIndex(function(s){return s.id===id});
+  if(idx>=0){
+    saved.splice(idx,1);
+    document.getElementById('save-btn-'+id).textContent = '♡ Salvar conta';
+  } else {
+    saved.push(item);
+    document.getElementById('save-btn-'+id).textContent = '✓ Salvo';
+  }
+  document.getElementById('badge-salvos').textContent = saved.length;
+}
+
+function closeDetail(e){
+  if(e.target===document.getElementById('detail-overlay')) closeDetailDirect();
+}
+
+function closeDetailDirect(){
+  document.getElementById('detail-overlay').classList.remove('open');
+}
+
+function openConfig(){ document.getElementById('config-overlay').classList.add('open'); }
+function closeConfig(){ document.getElementById('config-overlay').classList.remove('open'); }
+function closeConfigOverlay(e){ if(e.target===document.getElementById('config-overlay')) closeConfig(); }
+
+function saveConfig(){
+  var key = document.getElementById('apify-key').value.trim();
+  if(key){
+    document.getElementById('api-dot').classList.add('connected');
+    document.getElementById('api-status-text').textContent = 'Conectada';
+    document.querySelector('.logo-sub').textContent = 'v1.0 · API conectada';
+    alert('Configuração salva! Para coletar dados reais, o próximo passo é integrar os scrapers do Apify no código.');
+  }
+  closeConfig();
+}
+
+aplicarFiltros();
+renderAlta();
+</script>
+</body>
+</html>
